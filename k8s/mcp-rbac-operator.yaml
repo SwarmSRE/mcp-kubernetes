@@ -1,0 +1,60 @@
+# swarmsre-mcp-operator.yaml
+# Operator RBAC for the MCP server — Non-destructive Remediation (Phase 2, HITL-gated)
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: swarmsre-mcp-operator
+  namespace: swarmsre-system
+  labels:
+    app.kubernetes.io/name: swarmsre
+    app.kubernetes.io/component: mcp-operator
+    app.kubernetes.io/part-of: swarmsre
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: swarmsre-mcp-operator
+  labels:
+    app.kubernetes.io/name: swarmsre
+rules:
+  # Core resources — read-only
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - events
+      - configmaps
+      - namespaces
+      - nodes
+    verbs: ["get", "list", "watch"]
+  # Non-destructive write operations (NO delete)
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - replicasets
+      - statefulsets
+      - daemonsets
+    verbs: ["get", "list", "watch", "patch", "update"]
+  # Needed for rollout restart
+  - apiGroups: [""]
+    resources:
+      - pods/exec
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: swarmsre-mcp-operator
+  labels:
+    app.kubernetes.io/name: swarmsre
+subjects:
+  - kind: ServiceAccount
+    name: swarmsre-mcp-operator
+    namespace: swarmsre-system
+roleRef:
+  kind: ClusterRole
+  name: swarmsre-mcp-operator
+  apiGroup: rbac.authorization.k8s.io

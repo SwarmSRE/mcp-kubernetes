@@ -1,0 +1,70 @@
+# mcp-server-deployment.yaml
+# MCP Kubernetes Server — Deployment + Service
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-kubernetes-server
+  namespace: swarmsre-system
+  labels:
+    app: mcp-kubernetes-server
+    app.kubernetes.io/name: swarmsre
+    app.kubernetes.io/component: mcp-server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-kubernetes-server
+  template:
+    metadata:
+      labels:
+        app: mcp-kubernetes-server
+        app.kubernetes.io/name: swarmsre
+        app.kubernetes.io/component: mcp-server
+    spec:
+      serviceAccountName: swarmsre-mcp-readonly
+      containers:
+        - name: mcp-server
+          image: ghcr.io/stormforge-llc/mcp-kubernetes:latest
+          args:
+            - "--access-level=readonly"
+            - "--transport=sse"
+          ports:
+            - containerPort: 3000
+              name: sse
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-kubernetes-server
+  namespace: swarmsre-system
+  labels:
+    app: mcp-kubernetes-server
+    app.kubernetes.io/name: swarmsre
+spec:
+  selector:
+    app: mcp-kubernetes-server
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: 3000
+      name: sse
